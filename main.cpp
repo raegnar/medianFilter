@@ -1,8 +1,10 @@
 #include <cstdio>
+#include <cstdint>
 
 
-
-uint computeMedian(const uint *inputBuffer, const uint *offset_indices, int cnt)
+uint8_t computeMedian(const uint8_t *inputBuffer, 
+                      const  int    *offset_indices,
+                      int cnt)
 {
     // The more I think about this, I should have gathered the inputs from the offsets
     // and sorted that, or passed the inputBuffer to the sort function under the assumption
@@ -25,7 +27,9 @@ uint computeMedian(const uint *inputBuffer, const uint *offset_indices, int cnt)
 }
 
 
-void medianFilter(const uint *inputBuffer, const uint *outputBuffer, int width, int height, int k)
+void medianFilter(const uint8_t *inputBuffer, 
+                  const uint8_t *outputBuffer,
+                  int width, int height, int k)
 {
     // I decided a more explicit name for 'offsets' would help
     int *offset_indices = new int[width*height];
@@ -36,8 +40,8 @@ void medianFilter(const uint *inputBuffer, const uint *outputBuffer, int width, 
     for(int y = 0; y < height; y++)
     {
         int cnt = 0;
-        for(int kx = -halfK; kx <= halfKl; kx++)
-        for(int ky = -halfK; ky <= halfKl; ky++)
+        for(int kx = -halfK; kx <= halfK; kx++)
+        for(int ky = -halfK; ky <= halfK; ky++)
         {
             int ox = x + kx;
             int oy = y + ky;
@@ -51,11 +55,11 @@ void medianFilter(const uint *inputBuffer, const uint *outputBuffer, int width, 
 
         }
 
-        uint median = computeMedian(inputBuffer, offset_indices, cnt)
+        // uint8_t median = computeMedian(inputBuffer, offset_indices, cnt);
     }
 
     // I had forgotten to clean up the offsets array :(
-    delete [] offsets;
+    delete [] offset_indices;
 }
 
 
