@@ -241,7 +241,7 @@ void medianFilterV1(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
         }
         
 
-        printKernel(kernel_values, cnt);
+        // printKernel(kernel_values, cnt);
 
         // It became quickly clear that pulling the sort out of computeMedian made more sense
         quickSort(kernel_values, 0, cnt-1);
@@ -249,8 +249,8 @@ void medianFilterV1(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
 
         uint8_t median = computeMedian(kernel_values, cnt);
 
-        printf("median: %i\n", median);
-        printKernel(kernel_values, cnt);
+        // printf("median: %i\n", median);
+        // printKernel(kernel_values, cnt);
 
 
         int idx = x + y * width;
@@ -313,12 +313,12 @@ void medianFilterV2(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
         int a, b;
         if(cnt % 2 == 0)    // even
         {
-            MedianUtil(kernel_values, 0, cnt - 1, cnt / 2, a, b);
+            MedianUtil(kernel_values, 0, cnt - 1, cnt >> 1, a, b);
             median = (a + b) / 2;
         }
         else                // odd
         {
-            MedianUtil(kernel_values, 0, cnt - 1, cnt / 2, a, b);
+            MedianUtil(kernel_values, 0, cnt - 1, cnt >> 1, a, b);
             median = b;
         }
 
@@ -350,8 +350,10 @@ void medianFilterV2(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-// V2 replaces the quicksort with a quickselect algorithm for finding the 
-// median which runs in O(n) vs O(nlogn) for quicksort
+// V3 - cache efficiency
+// swap loop order to ensure we iterate through sequential array entries
+// surprisingly little perf upligt, entire possible a whole row fits in cache
+// on this machine
 
 void medianFilterV3(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width, int height, int k)
 {
@@ -421,7 +423,7 @@ static unsigned int buckets[256];
 
 void medianFilterV4(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width, int height, int k)
 {
-    int halfK = k >> 1;     // this works fine as a replacement for the divide by 2 and floor
+    int halfK = k >> 1;
 
     for(int y = 0; y < height; ++y)
     for(int x = 0; x < width;  ++x)
@@ -455,8 +457,6 @@ void medianFilterV4(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
                     currBucket = i;
                     sum += buckets[i];
                 }
-                // if(sum >= halfCnt)
-                //     break;
             }
             median = (prevBucket + currBucket) >> 1;
         }
@@ -489,61 +489,132 @@ void medianFilterV4(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-
+// V5 - Efficiency Optimization
+// Idea same as V4, but track the last column of kernel elements and the 
+// buckets they fall into, as we move across a row decrement those buckets,
+// and increment only the new row.
 
 void medianFilterV5(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width, int height, int k)
 {
     int halfK = k >> 1;     // this works fine as a replacement for the divide by 2 and floor
 
+    uint8_t *wave = new uint8_t[k];
+    int waveCnt = 0;
+
     for(int y = 0; y < height; ++y)
-    for(int x = 0; x < width;  ++x)
     {
-        int cnt = 0;
-        memset(&buckets, 0, 256);
-        for(int ky = -halfK; ky <= halfK; ++ky)
-        for(int kx = -halfK; kx <= halfK; ++kx)
+        for(int x = 0; x < width;  ++x)
         {
-            int ox = x + kx;
-            int oy = y + ky;
+            int cnt = 0;
 
-            if( !(ox < 0 || ox >= width || oy < 0 || oy >= height) )
+            // fully populate buckets on each new row
+            if(x == 0)  
             {
-                int offset_idx = ox + oy * width;
-                buckets[inputBuffer[offset_idx]]++;
-                ++cnt;
-            }
-        }
-
-        int median;
-        int halfCnt = cnt >> 1;
-        if(cnt % 2 == 0)   // even
-        {
-            int i, sum, prevBucket = 0, currBucket = 0;
-            for(i = 0, sum = 0; i < 256 && sum <= halfCnt; i++)
-            {
-                if(buckets[i] > 0)
+                memset(&buckets, 0, 256);
+                for(int ky = -halfK; ky <= halfK; ++ky)
+                for(int kx = -halfK; kx <= halfK; ++kx)
                 {
-                    prevBucket = currBucket;
-                    currBucket = i;
-                    sum += buckets[i];
+                    int ox = x + kx;
+                    int oy = y + ky;
+
+                    if( !(ox < 0 || ox >= width || oy < 0 || oy >= height) )
+                    {
+                        int offset_idx = ox + oy * width;
+                        buckets[inputBuffer[offset_idx]]++;
+                        ++cnt;
+                    }
                 }
             }
-            median = (prevBucket + currBucket) >> 1;
-        }
-        else    // odd
-        {
-            int i, sum;
-            for(i = 0, sum = 0; i < 256 && sum <= halfCnt; i++)
+            else
             {
-                sum += buckets[i];
-                median = i;
-            }
-        }
+                if(x >= halfK-1)
+                {   
+                    // decrement all buckets in the wave
+                    for(int i = 0; i < waveCnt; i++)
+                    {
+                        int bucketIdx = wave[i];
+                        buckets[bucketIdx]--;
+                    }
 
-        int idx = x + y * width;
-        outputBuffer[idx] = median;
+                    // Store the buckets to decrement
+                    waveCnt = 0;
+                    for(int ky = -halfK; ky <= halfK; ++ky)
+                    {
+                        int ox = x - (halfK-1);
+                        int oy = y + ky;
+                        if( !(ox < 0 || ox >= width || oy < 0 || oy >= height) )
+                        {
+                            int offset_idx = ox + oy * width;               
+                            wave[waveCnt] = inputBuffer[offset_idx];
+                            waveCnt++;
+                        }
+                    }
+                }
+
+                // Add the new column to the buckets
+                for(int ky = -halfK; ky <= halfK; ++ky)
+                {
+                    int ox = x;
+                    int oy = y + ky;
+
+                    if( !(ox < 0 || ox >= width || oy < 0 || oy >= height) )
+                    {
+                        int offset_idx = ox + oy * width;
+                        buckets[inputBuffer[offset_idx]]++;
+                        ++cnt;
+                    }
+                }            
+            }
+
+            int median;
+            int halfCnt = cnt >> 1;
+            if(cnt % 2 == 0)   // even
+            {
+                int i, sum, prevBucket = 0, currBucket = 0;
+                for(i = 0, sum = 0; i < 256 && sum <= halfCnt; i++)
+                {
+                    if(buckets[i] > 0)
+                    {
+                        prevBucket = currBucket;
+                        currBucket = i;
+                        sum += buckets[i];
+                    }
+                }
+                median = (prevBucket + currBucket) >> 1;
+            }
+            else    // odd
+            {
+                int i, sum;
+                for(i = 0, sum = 0; i < 256 && sum <= halfCnt; i++)
+                {
+                    sum += buckets[i];
+                    median = i;
+                }
+            }
+
+            int idx = x + y * width;
+            outputBuffer[idx] = median;
+        }
     }
+
+    delete [] wave;
 }
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//                        d8b          
+//                        Y8P          
+                                    
+// 88888b.d88b.   8888b.  888 88888b.  
+// 888 "888 "88b     "88b 888 888 "88b 
+// 888  888  888 .d888888 888 888  888 
+// 888  888  888 888  888 888 888  888 
+// 888  888  888 "Y888888 888 888  888 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 #include <chrono>
 #include <iostream>
@@ -554,8 +625,8 @@ int main(void)
     printf("hello world\n");
     printf("something else\n");
 
-    int width  = 8;
-    int height = 8;
+    int width  = 1024;
+    int height = 1024;
     int k = 7;
 
     uint8_t *inputBuffer = new uint8_t[width*height];
@@ -565,26 +636,21 @@ int main(void)
     for(int y = 0; y < height; y++)
     for(int x = 0; x < width;  x++)
     {        
-
         int val = width*height - (x + y*width);
-     //   printf("%i \n", width*height - (x + y*width));
-
         inputBuffer[x + y*width] = val;
-
-        // printf("%i \n", inputBuffer[x + y*width]);
     }
 
-    printBuffer(inputBuffer, width, height);
+    // printBuffer(inputBuffer, width, height);
 
     int testIterations = 5;
 
     medianFilterV1(inputBuffer, outputBuf1, width, height, k);
 
-    printBuffer(outputBuf1, width, height);
+    // printBuffer(outputBuf1, width, height);
 
-    medianFilterV4(inputBuffer, outputBuf2, width, height, k);
+    medianFilterV5(inputBuffer, outputBuf2, width, height, k);
 
-    printBuffer(outputBuf2, width, height);
+    // printBuffer(outputBuf2, width, height);
 
     if(compareBuffers(outputBuf1, outputBuf2, width, height))
         printf("They're the same!!!\n");
@@ -596,7 +662,7 @@ int main(void)
     for(int i = 0; i < testIterations; i++)
     {
         auto t1 = Clock::now();
-        medianFilterV1(inputBuffer, outputBuf1, width, height, k);
+        medianFilterV4(inputBuffer, outputBuf1, width, height, k);
         auto t2 = Clock::now();
 
         uint64_t delta = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
