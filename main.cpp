@@ -547,21 +547,28 @@ void medianFilterV5(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
 {
     int halfK = k >> 1;     // this works fine as a replacement for the divide by 2 and floor
 
-    uint8_t *wave = new uint8_t[k];
+    int *wave = new int[k];
+    // uint8_t *wave = new uint8_t[k];
     int waveCnt = 0;
 
     for(int y = 0; y < height; ++y)
     {
+        int cnt = 0;
         for(int x = 0; x < width;  ++x)
         {
-            int cnt = 0;
+            if(x == 1 && y == 1)  
+            {
+                printf("break!\n");
+            }
+
 
             // fully populate buckets on each new row
             if(x == 0)  
             {
+                waveCnt = 0;
                 memset(&buckets, 0, 256);
-                for(int ox = max(x - halfK, 0); ox <= min(x + halfK, width  - 1); ox++)
                 for(int oy = max(y - halfK, 0); oy <= min(y + halfK, height - 1); oy++)
+                for(int ox = max(x - halfK, 0); ox <= min(x + halfK, width  - 1); ox++)
                 {
                     int offset_idx = ox + oy * width;
                     buckets[inputBuffer[offset_idx]]++;
@@ -577,13 +584,14 @@ void medianFilterV5(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
                     {
                         int bucketIdx = wave[i];
                         buckets[bucketIdx]--;
+                        cnt--;
                     }
 
                     // Store the buckets to decrement
                     waveCnt = 0;
                     for(int ky = -halfK; ky <= halfK; ++ky)
                     {
-                        int ox = x - (halfK-1);
+                        int ox = x - (halfK);
                         int oy = y + ky;
                         if( !(ox < 0 || ox >= width || oy < 0 || oy >= height) )
                         {
@@ -597,7 +605,7 @@ void medianFilterV5(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
                 // Add the new column to the buckets
                 for(int ky = -halfK; ky <= halfK; ++ky)
                 {
-                    int ox = x;
+                    int ox = x + halfK;
                     int oy = y + ky;
 
                     if( !(ox < 0 || ox >= width || oy < 0 || oy >= height) )
@@ -668,9 +676,22 @@ int main(void)
     printf("hello world\n");
     printf("something else\n");
 
-    int width  = 8;
-    int height = 8;
+#if 0
+    int width  = 1024;
+    int height = 1024;
     int k = 7;
+#else
+    int width  = 4;
+    int height = 4;
+    int k = 3;
+    static uint8_t minBuffer[16] = { 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
+    static uint8_t outBuffer[16];
+
+    medianFilterV5(&minBuffer[0], &outBuffer[0], width, height, k);
+
+    printBuffer(outBuffer, width, height);
+
+#endif
 
     uint8_t *inputBuffer = new uint8_t[width*height];
     uint8_t *outputBuf1  = new uint8_t[width*height];
@@ -689,11 +710,11 @@ int main(void)
 
     medianFilterV1(inputBuffer, outputBuf1, width, height, k);
 
-    printBuffer(outputBuf1, width, height);
+    // printBuffer(outputBuf1, width, height);
 
     medianFilterV2(inputBuffer, outputBuf2, width, height, k);
 
-    printBuffer(outputBuf2, width, height);
+    // printBuffer(outputBuf2, width, height);
 
     if(compareBuffers(outputBuf1, outputBuf2, width, height))
         printf("They're the same!!!\n");
@@ -705,7 +726,7 @@ int main(void)
     for(int i = 0; i < testIterations; i++)
     {
         auto t1 = Clock::now();
-        medianFilterV4(inputBuffer, outputBuf1, width, height, k);
+        medianFilterV2(inputBuffer, outputBuf1, width, height, k);
         auto t2 = Clock::now();
 
         uint64_t delta = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
