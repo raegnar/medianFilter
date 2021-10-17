@@ -308,7 +308,6 @@ void medianFilterV1_1(const uint8_t *inputBuffer, uint8_t *outputBuffer, int wid
     for(int y = 0; y < height; y++)
     {
         int cnt = 0;
-
         for(int ox = max(x - halfK, 0); ox <= min(x + halfK, width  - 1); ox++)
         for(int oy = max(y - halfK, 0); oy <= min(y + halfK, height - 1); oy++)
         {
@@ -317,18 +316,11 @@ void medianFilterV1_1(const uint8_t *inputBuffer, uint8_t *outputBuffer, int wid
             cnt++;
         }
         
-
-        // printKernel(kernel_values, cnt);
-
         // It became quickly clear that pulling the sort out of computeMedian made more sense
         quickSort(kernel_values, 0, cnt-1);
 
-
+        // Pass the sorted kernel values to the median function
         uint8_t median = computeMedian(kernel_values, cnt);
-
-        // printf("median: %i\n", median);
-        // printKernel(kernel_values, cnt);
-
 
         int idx = x + y * width;
         outputBuffer[idx] = median;
@@ -370,23 +362,15 @@ void medianFilterV2(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
     for(int y = 0; y < height; y++)
     {
         int cnt = 0;
-        for(int kx = -halfK; kx <= halfK; kx++)
-        for(int ky = -halfK; ky <= halfK; ky++)
+        for(int ox = max(x - halfK, 0); ox <= min(x + halfK, width  - 1); ox++)
+        for(int oy = max(y - halfK, 0); oy <= min(y + halfK, height - 1); oy++)
         {
-            int ox = x + kx;
-            int oy = y + ky;
-
-            if( !(ox < 0 || ox >= width || oy < 0 || oy >= height) )
-            {
-                int offset_idx = ox + oy * width;
-                kernel_values[cnt] = inputBuffer[offset_idx];
-                cnt++;
-            }
+            int offset_idx = ox + oy * width;
+            kernel_values[cnt] = inputBuffer[offset_idx];
+            cnt++;
         }
 
         uint8_t median;
-
-
 
         int a, b;
         if(cnt % 2 == 0)    // even
@@ -444,18 +428,12 @@ void medianFilterV3(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
     for(int x = 0; x < width;  ++x)
     {
         int cnt = 0;
-        for(int ky = -halfK; ky <= halfK; ++ky)
-        for(int kx = -halfK; kx <= halfK; ++kx)
+        for(int ox = max(x - halfK, 0); ox <= min(x + halfK, width  - 1); ox++)
+        for(int oy = max(y - halfK, 0); oy <= min(y + halfK, height - 1); oy++)
         {
-            int ox = x + kx;
-            int oy = y + ky;
-
-            if( !(ox < 0 || ox >= width || oy < 0 || oy >= height) )
-            {
-                int offset_idx = ox + oy * width;
-                kernel_values[cnt] = inputBuffer[offset_idx];
-                ++cnt;
-            }
+            int offset_idx = ox + oy * width;
+            kernel_values[cnt] = inputBuffer[offset_idx];
+            ++cnt;
         }
 
         uint8_t median;
@@ -508,18 +486,12 @@ void medianFilterV4(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
     {
         int cnt = 0;
         memset(&buckets, 0, 256);
-        for(int ky = -halfK; ky <= halfK; ++ky)
-        for(int kx = -halfK; kx <= halfK; ++kx)
+        for(int ox = max(x - halfK, 0); ox <= min(x + halfK, width  - 1); ox++)
+        for(int oy = max(y - halfK, 0); oy <= min(y + halfK, height - 1); oy++)
         {
-            int ox = x + kx;
-            int oy = y + ky;
-
-            if( !(ox < 0 || ox >= width || oy < 0 || oy >= height) )
-            {
-                int offset_idx = ox + oy * width;
-                buckets[inputBuffer[offset_idx]]++;
-                ++cnt;
-            }
+            int offset_idx = ox + oy * width;
+            buckets[inputBuffer[offset_idx]]++;
+            ++cnt;
         }
 
         int median;
@@ -589,18 +561,12 @@ void medianFilterV5(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
             if(x == 0)  
             {
                 memset(&buckets, 0, 256);
-                for(int ky = -halfK; ky <= halfK; ++ky)
-                for(int kx = -halfK; kx <= halfK; ++kx)
+                for(int ox = max(x - halfK, 0); ox <= min(x + halfK, width  - 1); ox++)
+                for(int oy = max(y - halfK, 0); oy <= min(y + halfK, height - 1); oy++)
                 {
-                    int ox = x + kx;
-                    int oy = y + ky;
-
-                    if( !(ox < 0 || ox >= width || oy < 0 || oy >= height) )
-                    {
-                        int offset_idx = ox + oy * width;
-                        buckets[inputBuffer[offset_idx]]++;
-                        ++cnt;
-                    }
+                    int offset_idx = ox + oy * width;
+                    buckets[inputBuffer[offset_idx]]++;
+                    ++cnt;
                 }
             }
             else
@@ -726,7 +692,7 @@ int main(void)
 
     printBuffer(outputBuf1, width, height);
 
-    medianFilterV1_1(inputBuffer, outputBuf2, width, height, k);
+    medianFilterV4(inputBuffer, outputBuf2, width, height, k);
 
     printBuffer(outputBuf2, width, height);
 
