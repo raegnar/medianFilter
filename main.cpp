@@ -76,7 +76,7 @@ int randomPartition(uint8_t *arr, int low, int high)
 // Utility function to find median
 void MedianUtil(uint8_t *arr, int low, int high, int k, int& a, int& b)
 {
-     // if low < r
+     // if low < high
     if (low <= high)
     {
          // Find the partition index
@@ -350,6 +350,23 @@ void medianFilterV1_1(const uint8_t *inputBuffer, uint8_t *outputBuffer, int wid
 // replaces the quicksort with a quickselect algorithm for finding the 
 // median which runs in O(n) vs O(nlogn) for quicksort
 
+uint8_t selectMedian(uint8_t *kernel_values, int cnt)
+{
+    uint8_t medianVal;
+    
+    int a = -1, b = -1;
+    if(cnt % 2 == 0)    // even
+    {
+        MedianUtil(kernel_values, 0, cnt - 1, cnt >> 1, a, b);
+        medianVal = (a + b) >> 1;
+    }
+    else                // odd
+    {
+        MedianUtil(kernel_values, 0, cnt - 1, cnt >> 1, a, b);
+        medianVal = b;
+    }
+    return medianVal;
+}
 
 void medianFilterV2(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width, int height, int k)
 {
@@ -370,25 +387,7 @@ void medianFilterV2(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
             cnt++;
         }
 
-        uint8_t median;
-
-        int a, b;
-        if(cnt % 2 == 0)    // even
-        {
-            MedianUtil(kernel_values, 0, cnt - 1, cnt >> 1, a, b);
-            median = (a + b) / 2;
-        }
-        else                // odd
-        {
-            MedianUtil(kernel_values, 0, cnt - 1, cnt >> 1, a, b);
-            median = b;
-        }
-
-        printf("median: %i    cnt: %i\n", median, cnt);
-        quickSort(kernel_values, 0, cnt-1);
-        printKernel(kernel_values, cnt);
-
-        int intMedian = (int)median;
+        uint8_t median = selectMedian(kernel_values, cnt);
 
         int idx = x + y * width;
         outputBuffer[idx] = median;
@@ -692,7 +691,7 @@ int main(void)
 
     printBuffer(outputBuf1, width, height);
 
-    medianFilterV4(inputBuffer, outputBuf2, width, height, k);
+    medianFilterV2(inputBuffer, outputBuf2, width, height, k);
 
     printBuffer(outputBuf2, width, height);
 
