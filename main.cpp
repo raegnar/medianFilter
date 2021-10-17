@@ -29,7 +29,18 @@ void swap(uint8_t *a, uint8_t *b)
     int t = *a; 
     *a = *b; 
     *b = t; 
-} 
+}
+
+int min(const int a, const int b)
+{
+    return (b < a) ? b : a;
+}
+
+int max(const int a, const int b)
+{
+    return (b > a) ? b : a;
+}
+
 
 // This function takes last element as pivot, places the pivot element at its correct position in sorted 
 // array, and places all smaller (smaller than pivot) to left of pivot and all greater elements to right 
@@ -187,14 +198,22 @@ bool compareBuffers(const uint8_t *buf1, const uint8_t *buf2, int width, int hei
 // V0 the version from the coding interview
 
 
-//----------------------------------------------------------------------------------------------------------------
-//----------------------------------------------------------------------------------------------------------------
-//----------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+// 888     888  d888   
+// 888     888 d8888   
+// 888     888   888   
+// Y88b   d88P   888   
+//  Y88b d88P    888   
+//   Y88o88P     888   
+//    Y888P      888   
+//     Y8P     8888888 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // V1, intended as the version from the coding interview, but I couldn't help but make improvements
-//
-//----------------------------------------------------------------------------------------------------------------
-//----------------------------------------------------------------------------------------------------------------
-//----------------------------------------------------------------------------------------------------------------
 
 uint8_t computeMedian(const uint8_t *kernel_values, int cnt)
 {
@@ -261,6 +280,65 @@ void medianFilterV1(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
     // delete [] offset_indices;
     delete [] kernel_values;
 }
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// 888     888  d888        d888   
+// 888     888 d8888       d8888   
+// 888     888   888         888   
+// Y88b   d88P   888         888   
+//  Y88b d88P    888         888   
+//   Y88o88P     888         888   
+//    Y888P      888   d8b   888   
+//     Y8P     8888888 Y8P 8888888 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+
+void medianFilterV1_1(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width, int height, int k)
+{
+    // Kernel values
+    uint8_t *kernel_values = new uint8_t[width*height];
+
+    int halfK = k >> 1;     // this works fine as a replacement for the divide by 2 and floor
+
+    for(int x = 0; x < width;  x++)
+    for(int y = 0; y < height; y++)
+    {
+        int cnt = 0;
+
+        for(int ox = max(x - halfK, 0); ox <= min(x + halfK, width  - 1); ox++)
+        for(int oy = max(y - halfK, 0); oy <= min(y + halfK, height - 1); oy++)
+        {
+            int offset_idx = ox + oy * width;
+            kernel_values[cnt] = inputBuffer[offset_idx];
+            cnt++;
+        }
+        
+
+        // printKernel(kernel_values, cnt);
+
+        // It became quickly clear that pulling the sort out of computeMedian made more sense
+        quickSort(kernel_values, 0, cnt-1);
+
+
+        uint8_t median = computeMedian(kernel_values, cnt);
+
+        // printf("median: %i\n", median);
+        // printKernel(kernel_values, cnt);
+
+
+        int idx = x + y * width;
+        outputBuffer[idx] = median;
+    }
+
+    // I had forgotten to clean up the offsets array :(
+    // delete [] offset_indices;
+    delete [] kernel_values;
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -625,8 +703,8 @@ int main(void)
     printf("hello world\n");
     printf("something else\n");
 
-    int width  = 1024;
-    int height = 1024;
+    int width  = 8;
+    int height = 8;
     int k = 7;
 
     uint8_t *inputBuffer = new uint8_t[width*height];
@@ -646,11 +724,11 @@ int main(void)
 
     medianFilterV1(inputBuffer, outputBuf1, width, height, k);
 
-    // printBuffer(outputBuf1, width, height);
+    printBuffer(outputBuf1, width, height);
 
-    medianFilterV5(inputBuffer, outputBuf2, width, height, k);
+    medianFilterV1_1(inputBuffer, outputBuf2, width, height, k);
 
-    // printBuffer(outputBuf2, width, height);
+    printBuffer(outputBuf2, width, height);
 
     if(compareBuffers(outputBuf1, outputBuf2, width, height))
         printf("They're the same!!!\n");
