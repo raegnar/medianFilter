@@ -67,7 +67,7 @@
 // Average for median-filter V2:  275.4 ms, 1.6x vs V1
 // Average for median-filter V3:  366.2 ms, 1.2x vs V1
 // Average for median-filter V4:   79.1 ms, 5.5x vs V1
-// Average for median-filter V5:   43.0 ms, 10.0x vs V1
+// Average for median-filter V5:   43.0 ms, 10.1x vs V1
 
 // Most surprising results is the poor performance of V3, may be worth 
 // further investigation. Would like to learn why it performs worse, when
@@ -273,7 +273,7 @@ bool compareBuffers(const uint8_t *buf1, const uint8_t *buf2, int width, int hei
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-// V0 - the version from the coding interview
+// V0 - the version from the initial excercise
 // Obviously time was constrained for the implementation of this, and after
 // the fact I began to realize some of the problems with it. Some minor, others
 // more significant.
