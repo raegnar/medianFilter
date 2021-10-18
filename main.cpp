@@ -3,6 +3,42 @@
 #include <cstring>
 #include <cstdint>
 
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//  .d8888b.                                                                 
+// d88P  Y88b                                                                
+// Y88b.                                                                     
+//  "Y888b.   888  888 88888b.d88b.  88888b.d88b.   8888b.  888d888 888  888 
+//     "Y88b. 888  888 888 "888 "88b 888 "888 "88b     "88b 888P"   888  888 
+//       "888 888  888 888  888  888 888  888  888 .d888888 888     888  888 
+// Y88b  d88P Y88b 888 888  888  888 888  888  888 888  888 888     Y88b 888 
+//  "Y8888P"   "Y88888 888  888  888 888  888  888 "Y888888 888      "Y88888 
+//                                                                       888 
+//                                                                  Y8b d88P 
+//                                                                   "Y88P"  
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// 8888888b.                            888 888             
+// 888   Y88b                           888 888             
+// 888    888                           888 888             
+// 888   d88P .d88b.  .d8888b  888  888 888 888888 .d8888b  
+// 8888888P" d8P  Y8b 88K      888  888 888 888    88K      
+// 888 T88b  88888888 "Y8888b. 888  888 888 888    "Y8888b. 
+// 888  T88b Y8b.          X88 Y88b 888 888 Y88b.       X88 
+// 888   T88b "Y8888   88888P'  "Y88888 888  "Y888  88888P' 
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
+
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -635,112 +671,31 @@ void medianFilterV5(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
 
     delete [] wave;
 }
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-// 888     888  .d8888b.  
-// 888     888 d88P  Y88b 
-// 888     888 888        
-// Y88b   d88P 888d888b.  
-//  Y88b d88P  888P "Y88b 
-//   Y88o88P   888    888 
-//    Y888P    Y88b  d88P 
-//     Y8P      "Y8888P"  
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-// V6 - Broadcast to Buckets
-// The idea for this one is to have an array of buckets, and as we iterate over
-// the pixels broadcast their value into the correct array of buckets,
-// effectively having a bucket-per-pixels. Though in reality we require only 
-// as many "buckets" as we have kernel entries, and can recycle buckets as we
-// move through the pixels.
-// This approach likely becomes impractical as kernel size increases however.
-
-void medianFilterV6(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width, int height, int k)
-{
-    int halfK = k >> 1;     // this works fine as a replacement for the divide by 2 and floor
-
-    // int *wave = new int[k];
-    uint8_t *wave = new uint8_t[k];
-    int waveCnt = 0;
-
-    for(int y = 0; y < height; ++y)
-    {
-        int cnt = 0;
-        for(int x = 0; x < width;  ++x)
-        {
-            // fully populate buckets on each new row
-            if(x == 0)  
-            {
-                waveCnt = 0;
-                memset(&buckets, 0, 256);
-                for(int oy = max(y - halfK, 0); oy <= min(y + halfK, height - 1); oy++)
-                for(int ox = max(x - halfK, 0); ox <= min(x + halfK, width  - 1); ox++)
-                {
-                    int offset_idx = ox + oy * width;
-                    buckets[inputBuffer[offset_idx]]++;
-                    ++cnt;
-                }
-            }
-            else
-            {
-                if(x >= halfK-1)
-                {   
-                    // decrement all buckets in the wave
-                    for(int i = 0; i < waveCnt; i++)
-                    {
-                        uint8_t bucketIdx = wave[i];
-                        buckets[bucketIdx]--;
-                        cnt--;
-                    }
-
-                    // Store the buckets to decrement
-                    waveCnt = 0;
-                    for(int oy = max(y - halfK, 0); oy <= min(y + halfK, height - 1); oy++)
-                    {
-                        int ox = x - (halfK);
-                        int offset_idx = ox + oy * width;               
-                        wave[waveCnt] = inputBuffer[offset_idx];
-                        waveCnt++;
-                    }
-                }
-
-                // Add the new column to the buckets
-                for(int oy = max(y - halfK, 0); oy <= min(y + halfK, height - 1); oy++)
-                {
-                    int ox = x + halfK;
-                    int offset_idx = ox + oy * width;
-                    buckets[inputBuffer[offset_idx]]++;
-                    ++cnt;
-                }            
-            }
-
-            uint8_t median = countMedian(&buckets[0], cnt);
-    
-            int idx = x + y * width;
-            outputBuffer[idx] = median;
-        }
-    }
-
-    delete [] wave;
-}
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-// 8888888888       888                             
-// 888              888                             
-// 888              888                             
-// 8888888 888  888 888888 888  888 888d888 .d88b.  
-// 888     888  888 888    888  888 888P"  d8P  Y8b 
-// 888     888  888 888    888  888 888    88888888 
-// 888     Y88b 888 Y88b.  Y88b 888 888    Y8b.     
-// 888      "Y88888  "Y888  "Y88888 888     "Y8888  
+// 888     888 888888888          
+// 888     888 888                
+// 888     888 888                
+// Y88b   d88P 8888888b.    888   
+//  Y88b d88P       "Y88b 8888888 
+//   Y88o88P          888   888   
+//    Y888P    Y88b  d88P         
+//     Y8P      "Y8888P"          
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------                                           
-// V6+ ideas
+// V5+ Ideas
+// V6 Idea - Broadcast to Buckets
+// The idea for this one is to have an array of buckets, and as we iterate over
+// the pixels broadcast their value into the correct array of buckets,
+// effectively having a bucket-per-pixels. Though practically we would limit
+// the number of "buckets" and recycyle them as we move through the pixels.
+// Probably need better naming for this idea, because calling them buckets,
+// which themselves have buckets is already confusing.
+//
+// Other Ideas/Optimization
 // Vectorization - this is always an option
 //   ISPC - would be fun to try an ISPC implementation of this
 // Single loops - a lot of the double-for loops could be reduced to single 
@@ -750,6 +705,44 @@ void medianFilterV6(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
 //   
                                                  
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// 88888888888 d8b               d8b                   
+//     888     Y8P               Y8P                   
+//     888                                             
+//     888     888 88888b.d88b.  888 88888b.   .d88b.  
+//     888     888 888 "888 "88b 888 888 "88b d88P"88b 
+//     888     888 888  888  888 888 888  888 888  888 
+//     888     888 888  888  888 888 888  888 Y88b 888 
+//     888     888 888  888  888 888 888  888  "Y88888 
+//                                                 888 
+//                                            Y8b d88P 
+//                                             "Y88P"  
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+#include <chrono>
+#include <iostream>
+typedef std::chrono::high_resolution_clock Clock;
+
+float timeFunction(void (*medianFilter)(const uint8_t *, uint8_t *, int, int, int), 
+                   uint8_t *inBuf, uint8_t *outBuf, int width, int height, int k,
+                   int testIterations = 1)
+{
+    uint64_t sum = 0;
+    for(int i = 0; i < testIterations; i++)
+    {
+        auto t1 = Clock::now();
+        medianFilter(inBuf, outBuf, width, height, k);
+        auto t2 = Clock::now();
+        uint64_t delta = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+        // std::cout << i << " " << delta << std::endl;
+        sum += delta;
+    }
+    return (float)sum / (float)testIterations;
+}
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -766,37 +759,10 @@ void medianFilterV6(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-#include <chrono>
-#include <iostream>
-typedef std::chrono::high_resolution_clock Clock;
-
-void timeFunction(void (*medianFilter)(const uint8_t *, uint8_t *, int, int, int), uint8_t *inBuf, uint8_t *outBuf, int width, int height, int k)
-{
-    int testIterations = 5;
-
-    uint64_t sum = 0;
-    for(int i = 0; i < testIterations; i++)
-    {
-        auto t1 = Clock::now();
-        medianFilter(inBuf, outBuf, width, height, k);
-        auto t2 = Clock::now();
-
-        uint64_t delta = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
-
-        std::cout << i << " " << delta << std::endl;
-
-        sum += delta;
-    }
-
-    std::cout << "average: " << (float)sum / (float)testIterations << " milliseconds" << std::endl;
-}
-
-
 
 int main(void)
 {
-    printf("hello world\n");
-    printf("something else\n");
+    printf("Testing and timing median filter implementations\n");
 
 #if 1
     int width  = 1024;
@@ -860,12 +826,14 @@ int main(void)
     medianFilterV[4] = medianFilterV4;
     medianFilterV[5] = medianFilterV5;
 
-    for(int V = 1; V < 6; V++)
+    int testIterations = 5;
+    float avgV1 = timeFunction(medianFilterV[1], inputBuffer, outputBuf1, width, height, k, testIterations);
+    printf("Average for median-filter V%i: %6.1f ms\n", 1, avgV1);
+    for(int V = 2; V < 6; V++)
     {
-        timeFunction(medianFilterV[V], inputBuffer, outputBuf1, width, height, k);
+        float avg = timeFunction(medianFilterV[V], inputBuffer, outputBuf1, width, height, k, testIterations);
+        printf("Average for median-filter V%i: %6.1f ms, %2.1fx vs V1\n", V, avg, avgV1/avg);
     }
-
-
 
     return 0;
 }
