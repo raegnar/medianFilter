@@ -816,5 +816,9 @@ int main(void)
         printf("Average for median-filter V%i: %6.1f ms, %2.1fx vs V1\n", V, avg, avgV1/avg);
     }
 
+    delete [] inputBuffer;
+    delete [] outputBuf1;
+    delete [] outputBuf2;
+
     return 0;
 }
