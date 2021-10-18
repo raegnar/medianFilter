@@ -39,12 +39,19 @@
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
-// System #1: 3.5 GHz Quad-Core Intel Core i5 running macOS Big Sur
+// System #1: 3.5 GHz Quad-Core Intel Core i5 running macOS Big Sur - Debug build
 // Average for median-filter V1: 1949.9 ms
 // Average for median-filter V2: 1130.4 ms, 1.7x vs V1
 // Average for median-filter V3: 1151.5 ms, 1.7x vs V1
 // Average for median-filter V4:  511.9 ms, 3.8x vs V1
 // Average for median-filter V5:  228.4 ms, 8.5x vs V1
+
+// System #1: 3.5 GHz Quad-Core Intel Core i5 running macOS Big Sur - Ofast build
+// Average for median-filter V1:  342.6 ms
+// Average for median-filter V2:  333.8 ms, 1.0x vs V1
+// Average for median-filter V3:  425.2 ms, 0.8x vs V1
+// Average for median-filter V4:   73.5 ms, 4.7x vs V1
+// Average for median-filter V5:   77.2 ms, 4.4x vs V1
 
 // System #2: Apple M1 MacBook Pro - Debug build
 // Testing and timing median filter implementations
@@ -54,13 +61,17 @@
 // Average for median-filter V4:  392.8 ms, 4.3x vs V1
 // Average for median-filter V5:  219.6 ms, 7.7x vs V1
 
-// System #2: Apple M1 MacBook Pro - OFast build
+// System #2: Apple M1 MacBook Pro - Ofast build
 // Testing and timing median filter implementations
 // Average for median-filter V1:  434.0 ms
 // Average for median-filter V2:  275.4 ms, 1.6x vs V1
 // Average for median-filter V3:  366.2 ms, 1.2x vs V1
 // Average for median-filter V4:   79.1 ms, 5.5x vs V1
 // Average for median-filter V5:   43.0 ms, 10.0x vs V1
+
+// Most surprising results is the poor performance of V3, may be worth 
+// further investigation. Would like to learn why it performs worse, when
+// it should in theory improve access locality.
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -483,8 +494,9 @@ void medianFilterV2(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
 //-----------------------------------------------------------------------------
 // V3 - cache efficiency
 // swap loop order to ensure we iterate through sequential array entries
-// surprisingly little perf upligt, entire possible a whole row fits in cache
-// on this machine
+// surprisingly little perf uplift, maybe a whole row fits in cache on this
+// machine. 
+// Actually is slower than V2 in Ofast builds... weird.
 
 void medianFilterV3(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width, int height, int k)
 {
