@@ -194,14 +194,39 @@ bool compareBuffers(const uint8_t *buf1, const uint8_t *buf2, int width, int hei
 
 #define DEBUG FALSE
 
-
-// V0 the version from the coding interview
-
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// 888     888  .d8888b.  
+// 888     888 d88P  Y88b 
+// 888     888 888    888 
+// Y88b   d88P 888    888 
+//  Y88b d88P  888    888 
+//   Y88o88P   888    888 
+//    Y888P    Y88b  d88P 
+//     Y8P      "Y8888P"  
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// V0 - the version from the coding interview
+// Obviously time was constrained for the implementation of this, and after
+// the fact I began to realize some of the problems with it. Some minor, others
+// more significant.
+// Minor issues - lack of const safety
+// Memory issue - didn't clean up dynamically allocated array at the end of the
+//   function
+// Structural issue - I was too focused on created an array of index offsets,
+//   I think because I have found this helpful in the past. This needlessly
+//   deferred fetching the actual kernel values to compute the median from and
+//   complicated later functions. Ultimately it would've been better to 
+//   immediately populate the kernel, then sort the values, and then
+//   compute the median.
+// Anyway, most of these issues became obvious on reimplementation, and now
+// constitute V1 of the median filter implementation.
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-
 // 888     888  d888   
 // 888     888 d8888   
 // 888     888   888   
@@ -258,26 +283,17 @@ void medianFilterV1(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
                 cnt++;
             }
         }
-        
-
-        // printKernel(kernel_values, cnt);
 
         // It became quickly clear that pulling the sort out of computeMedian made more sense
         quickSort(kernel_values, 0, cnt-1);
 
-
         uint8_t median = computeMedian(kernel_values, cnt);
-
-        // printf("median: %i\n", median);
-        // printKernel(kernel_values, cnt);
-
 
         int idx = x + y * width;
         outputBuffer[idx] = median;
     }
 
     // I had forgotten to clean up the offsets array :(
-    // delete [] offset_indices;
     delete [] kernel_values;
 }
 
@@ -619,6 +635,120 @@ void medianFilterV5(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
 
     delete [] wave;
 }
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// 888     888  .d8888b.  
+// 888     888 d88P  Y88b 
+// 888     888 888        
+// Y88b   d88P 888d888b.  
+//  Y88b d88P  888P "Y88b 
+//   Y88o88P   888    888 
+//    Y888P    Y88b  d88P 
+//     Y8P      "Y8888P"  
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// V6 - Broadcast to Buckets
+// The idea for this one is to have an array of buckets, and as we iterate over
+// the pixels broadcast their value into the correct array of buckets,
+// effectively having a bucket-per-pixels. Though in reality we require only 
+// as many "buckets" as we have kernel entries, and can recycle buckets as we
+// move through the pixels.
+// This approach likely becomes impractical as kernel size increases however.
+
+void medianFilterV6(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width, int height, int k)
+{
+    int halfK = k >> 1;     // this works fine as a replacement for the divide by 2 and floor
+
+    // int *wave = new int[k];
+    uint8_t *wave = new uint8_t[k];
+    int waveCnt = 0;
+
+    for(int y = 0; y < height; ++y)
+    {
+        int cnt = 0;
+        for(int x = 0; x < width;  ++x)
+        {
+            // fully populate buckets on each new row
+            if(x == 0)  
+            {
+                waveCnt = 0;
+                memset(&buckets, 0, 256);
+                for(int oy = max(y - halfK, 0); oy <= min(y + halfK, height - 1); oy++)
+                for(int ox = max(x - halfK, 0); ox <= min(x + halfK, width  - 1); ox++)
+                {
+                    int offset_idx = ox + oy * width;
+                    buckets[inputBuffer[offset_idx]]++;
+                    ++cnt;
+                }
+            }
+            else
+            {
+                if(x >= halfK-1)
+                {   
+                    // decrement all buckets in the wave
+                    for(int i = 0; i < waveCnt; i++)
+                    {
+                        uint8_t bucketIdx = wave[i];
+                        buckets[bucketIdx]--;
+                        cnt--;
+                    }
+
+                    // Store the buckets to decrement
+                    waveCnt = 0;
+                    for(int oy = max(y - halfK, 0); oy <= min(y + halfK, height - 1); oy++)
+                    {
+                        int ox = x - (halfK);
+                        int offset_idx = ox + oy * width;               
+                        wave[waveCnt] = inputBuffer[offset_idx];
+                        waveCnt++;
+                    }
+                }
+
+                // Add the new column to the buckets
+                for(int oy = max(y - halfK, 0); oy <= min(y + halfK, height - 1); oy++)
+                {
+                    int ox = x + halfK;
+                    int offset_idx = ox + oy * width;
+                    buckets[inputBuffer[offset_idx]]++;
+                    ++cnt;
+                }            
+            }
+
+            uint8_t median = countMedian(&buckets[0], cnt);
+    
+            int idx = x + y * width;
+            outputBuffer[idx] = median;
+        }
+    }
+
+    delete [] wave;
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// 8888888888       888                             
+// 888              888                             
+// 888              888                             
+// 8888888 888  888 888888 888  888 888d888 .d88b.  
+// 888     888  888 888    888  888 888P"  d8P  Y8b 
+// 888     888  888 888    888  888 888    88888888 
+// 888     Y88b 888 Y88b.  Y88b 888 888    Y8b.     
+// 888      "Y88888  "Y888  "Y88888 888     "Y8888  
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------                                           
+// V6+ ideas
+// Vectorization - this is always an option
+//   ISPC - would be fun to try an ISPC implementation of this
+// Single loops - a lot of the double-for loops could be reduced to single 
+//   loops, which would save a lot of indexing math, though I am unconvinced
+//   this will yield a significant performance improvement, and would 
+//   negatively impact the readability of the code.
+//   
+                                                 
 
 
 //-----------------------------------------------------------------------------
@@ -640,12 +770,35 @@ void medianFilterV5(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
 #include <iostream>
 typedef std::chrono::high_resolution_clock Clock;
 
+void timeFunction(void (*medianFilter)(const uint8_t *, uint8_t *, int, int, int), uint8_t *inBuf, uint8_t *outBuf, int width, int height, int k)
+{
+    int testIterations = 5;
+
+    uint64_t sum = 0;
+    for(int i = 0; i < testIterations; i++)
+    {
+        auto t1 = Clock::now();
+        medianFilter(inBuf, outBuf, width, height, k);
+        auto t2 = Clock::now();
+
+        uint64_t delta = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+
+        std::cout << i << " " << delta << std::endl;
+
+        sum += delta;
+    }
+
+    std::cout << "average: " << (float)sum / (float)testIterations << " milliseconds" << std::endl;
+}
+
+
+
 int main(void)
 {
     printf("hello world\n");
     printf("something else\n");
 
-#if 0
+#if 1
     int width  = 1024;
     int height = 1024;
     int k = 7;
@@ -684,7 +837,7 @@ int main(void)
 
     // printBuffer(inputBuffer, width, height);
 
-    int testIterations = 5;
+
 
     medianFilterV1(inputBuffer, outputBuf1, width, height, k);
 
@@ -700,21 +853,19 @@ int main(void)
         printf("BUFFERS DO NOT MATCH\n");
 
 
-    uint64_t sum = 0;
-    for(int i = 0; i < testIterations; i++)
+    void (*medianFilterV[6])(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width, int height, int k);
+    medianFilterV[1] = medianFilterV1;
+    medianFilterV[2] = medianFilterV2;
+    medianFilterV[3] = medianFilterV3;
+    medianFilterV[4] = medianFilterV4;
+    medianFilterV[5] = medianFilterV5;
+
+    for(int V = 1; V < 6; V++)
     {
-        auto t1 = Clock::now();
-        medianFilterV2(inputBuffer, outputBuf1, width, height, k);
-        auto t2 = Clock::now();
-
-        uint64_t delta = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
-
-        std::cout << i << " " << delta << std::endl;
-
-        sum += delta;
+        timeFunction(medianFilterV[V], inputBuffer, outputBuf1, width, height, k);
     }
 
-    std::cout << "average: " << (float)sum / (float)testIterations << " milliseconds" << std::endl;
+
 
     return 0;
 }
