@@ -21,7 +21,8 @@
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-
+// A reimplementation of the median-filter excercise, and subsequent 
+// optimizations ultimately results in ~10x performance increase.
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -239,11 +240,6 @@ bool compareBuffers(const uint8_t *buf1, const uint8_t *buf2, int width, int hei
 
 
 
-#define TRUE  1
-#define FALSE 0
-
-#define DEBUG FALSE
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -264,7 +260,7 @@ bool compareBuffers(const uint8_t *buf1, const uint8_t *buf2, int width, int hei
 // more significant.
 // Minor issues - lack of const safety
 // Memory issue - didn't clean up dynamically allocated array at the end of the
-//   function
+//   function, could say I forgot, or that I didn't get around to it.
 // Structural issue - I was too focused on created an array of index offsets,
 //   I think because I have found this helpful in the past. This needlessly
 //   deferred fetching the actual kernel values to compute the median from and
@@ -288,7 +284,8 @@ bool compareBuffers(const uint8_t *buf1, const uint8_t *buf2, int width, int hei
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-// V1, intended as the version from the coding interview, but I couldn't help but make improvements
+// V1, intended as the version from the coding interview, but I couldn't help 
+// but make improvements. O(m*n*(k^2logk^2 + k^2))
 
 uint8_t computeMedian(const uint8_t *kernel_values, int cnt)
 {
@@ -361,7 +358,8 @@ void medianFilterV1(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-
+// V1.1 - cleaner loops
+// Same as V1 but with cleaner for-loops, same complexity
 
 void medianFilterV1_1(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width, int height, int k)
 {
@@ -392,8 +390,6 @@ void medianFilterV1_1(const uint8_t *inputBuffer, uint8_t *outputBuffer, int wid
         outputBuffer[idx] = median;
     }
 
-    // I had forgotten to clean up the offsets array :(
-    // delete [] offset_indices;
     delete [] kernel_values;
 }
 
@@ -414,7 +410,8 @@ void medianFilterV1_1(const uint8_t *inputBuffer, uint8_t *outputBuffer, int wid
 //-----------------------------------------------------------------------------
 // V2 - Algorithmic Optimization
 // replaces the quicksort with a quickselect algorithm for finding the 
-// median which runs in O(n) vs O(nlogn) for quicksort
+// median which runs in O(n) vs O(nlogn) for quicksort.
+// Total complexity O(m*n*(k^2 + k^2))
 
 uint8_t selectMedian(uint8_t *kernel_values, int cnt)
 {
@@ -459,7 +456,6 @@ void medianFilterV2(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
         outputBuffer[idx] = median;
     }
 
-    // I had forgotten to clean up the offsets array :(
     delete [] kernel_values;
 }
 
@@ -493,33 +489,20 @@ void medianFilterV3(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
     for(int x = 0; x < width;  ++x)
     {
         int cnt = 0;
-        for(int ox = max(x - halfK, 0); ox <= min(x + halfK, width  - 1); ox++)
         for(int oy = max(y - halfK, 0); oy <= min(y + halfK, height - 1); oy++)
+        for(int ox = max(x - halfK, 0); ox <= min(x + halfK, width  - 1); ox++)
         {
             int offset_idx = ox + oy * width;
             kernel_values[cnt] = inputBuffer[offset_idx];
             ++cnt;
         }
 
-        uint8_t median;
-
-        int a, b;
-        if(cnt % 2 == 0)    // even
-        {
-            MedianUtil(kernel_values, 0, cnt - 1, cnt / 2, a, b);
-            median = (a + b) / 2;
-        }
-        else                // odd
-        {
-            MedianUtil(kernel_values, 0, cnt - 1, cnt / 2, a, b);
-            median = b;
-        }
+        uint8_t median = selectMedian(kernel_values, cnt);
 
         int idx = x + y * width;
         outputBuffer[idx] = median;
     }
 
-    // I had forgotten to clean up the offsets array :(
     delete [] kernel_values;
 }
 
@@ -538,7 +521,9 @@ void medianFilterV3(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 // V4 - Bucketization of values
-//
+// Exploiting the fact that there are only 256 values int a uint8_t, we can
+// bin the occurances in an array and count through them to get the median, 
+// this brings us to O(m*n*k^2)
 
 static unsigned int buckets[256];
 
@@ -583,8 +568,8 @@ void medianFilterV4(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
     {
         int cnt = 0;
         memset(&buckets, 0, 256);
-        for(int ox = max(x - halfK, 0); ox <= min(x + halfK, width  - 1); ox++)
         for(int oy = max(y - halfK, 0); oy <= min(y + halfK, height - 1); oy++)
+        for(int ox = max(x - halfK, 0); ox <= min(x + halfK, width  - 1); ox++)
         {
             int offset_idx = ox + oy * width;
             buckets[inputBuffer[offset_idx]]++;
@@ -616,12 +601,13 @@ void medianFilterV4(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width
 // Idea same as V4, but track the last column of kernel elements and the 
 // buckets they fall into, as we move across a row decrement those buckets,
 // and increment only the new row.
+// This reduces the inner-loop to O(k) and brings the total complexity to 
+// O(m*n*k)
 
 void medianFilterV5(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width, int height, int k)
 {
     int halfK = k >> 1;     // this works fine as a replacement for the divide by 2 and floor
 
-    // int *wave = new int[k];
     uint8_t *wave = new uint8_t[k];
     int waveCnt = 0;
 
@@ -778,60 +764,21 @@ int main(void)
 {
     printf("Testing and timing median filter implementations\n");
 
-#if 1
     int width  = 1024;
     int height = 1024;
     int k = 7;
-#else
-    int width  = 4;
-    int height = 4;
-    int k = 3;
-    static uint8_t minBuffer[16] = { 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
-    static uint8_t outBuf1[16];
-    static uint8_t outBuf2[16];
-
-    medianFilterV5(&minBuffer[0], &outBuf1[0], width, height, k);
-    medianFilterV4(&minBuffer[0], &outBuf2[0], width, height, k);
-
-    printBuffer(outBuf1, width, height);
-
-
-    if(compareBuffers(outBuf1, outBuf2, width, height))
-        printf("They're the same!!!\n");
-    else
-        printf("BUFFERS DO NOT MATCH\n");
-
-
-#endif
 
     uint8_t *inputBuffer = new uint8_t[width*height];
     uint8_t *outputBuf1  = new uint8_t[width*height];
     uint8_t *outputBuf2  = new uint8_t[width*height];
 
+    // Test Pattern
     for(int y = 0; y < height; y++)
     for(int x = 0; x < width;  x++)
     {        
         int val = width*height - (x + y*width);
         inputBuffer[x + y*width] = val;
     }
-
-    // printBuffer(inputBuffer, width, height);
-
-
-
-    // medianFilterV1(inputBuffer, outputBuf1, width, height, k);
-
-    // // printBuffer(outputBuf1, width, height);
-
-    // medianFilterV2(inputBuffer, outputBuf2, width, height, k);
-
-    // // printBuffer(outputBuf2, width, height);
-
-    // if(compareBuffers(outputBuf1, outputBuf2, width, height))
-    //     printf("They're the same!!!\n");
-    // else
-    //     printf("BUFFERS DO NOT MATCH\n");
-
 
     void (*medianFilterV[6])(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width, int height, int k);
     medianFilterV[1] = medianFilterV1;
