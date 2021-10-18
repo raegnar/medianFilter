@@ -40,11 +40,11 @@
 //------------------------------------------------------------------------------
 
 // System #1: 3.5 GHz Quad-Core Intel Core i5 running macOS Big Sur
-// Average for median-filter V1: 1899.8 ms
-// Average for median-filter V2: 1085.4 ms, 1.8x vs V1
-// Average for median-filter V3: 1067.1 ms, 1.8x vs V1
-// Average for median-filter V4:  470.9 ms, 4.0x vs V1
-// Average for median-filter V5:  235.3 ms, 8.1x vs V1
+// Average for median-filter V1: 1949.9 ms
+// Average for median-filter V2: 1130.4 ms, 1.7x vs V1
+// Average for median-filter V3: 1151.5 ms, 1.7x vs V1
+// Average for median-filter V4:  511.9 ms, 3.8x vs V1
+// Average for median-filter V5:  228.4 ms, 8.5x vs V1
 
 // System #2: Apple M1 MacBook Pro
 // Testing and timing median filter implementations
