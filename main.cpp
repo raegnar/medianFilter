@@ -38,6 +38,14 @@
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
+// System #1: 3.5 GHz Quad-Core Intel Core i5 running macOS Big Sur
+// Average for median-filter V1:  421.0 ms
+// Average for median-filter V2:  338.0 ms, 1.2x vs V1
+// Average for median-filter V3:  315.7 ms, 1.3x vs V1
+// Average for median-filter V4:   75.6 ms, 5.6x vs V1
+// Average for median-filter V5:   79.5 ms, 5.3x vs V1
+
+// System #2: 
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -805,18 +813,18 @@ int main(void)
 
 
 
-    medianFilterV1(inputBuffer, outputBuf1, width, height, k);
+    // medianFilterV1(inputBuffer, outputBuf1, width, height, k);
 
-    // printBuffer(outputBuf1, width, height);
+    // // printBuffer(outputBuf1, width, height);
 
-    medianFilterV2(inputBuffer, outputBuf2, width, height, k);
+    // medianFilterV2(inputBuffer, outputBuf2, width, height, k);
 
-    // printBuffer(outputBuf2, width, height);
+    // // printBuffer(outputBuf2, width, height);
 
-    if(compareBuffers(outputBuf1, outputBuf2, width, height))
-        printf("They're the same!!!\n");
-    else
-        printf("BUFFERS DO NOT MATCH\n");
+    // if(compareBuffers(outputBuf1, outputBuf2, width, height))
+    //     printf("They're the same!!!\n");
+    // else
+    //     printf("BUFFERS DO NOT MATCH\n");
 
 
     void (*medianFilterV[6])(const uint8_t *inputBuffer, uint8_t *outputBuffer, int width, int height, int k);
@@ -826,7 +834,7 @@ int main(void)
     medianFilterV[4] = medianFilterV4;
     medianFilterV[5] = medianFilterV5;
 
-    int testIterations = 5;
+    int testIterations = 10;
     float avgV1 = timeFunction(medianFilterV[1], inputBuffer, outputBuf1, width, height, k, testIterations);
     printf("Average for median-filter V%i: %6.1f ms\n", 1, avgV1);
     for(int V = 2; V < 6; V++)

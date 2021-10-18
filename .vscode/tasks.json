@@ -4,21 +4,61 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build with Clang",
+            "label": "Build Debug with Clang",
             "type": "shell",
             "command": "/usr/bin/clang++",
             "args": [
                 "-std=c++17",
                 "-stdlib=libc++",
-                "${file}",
+                "main.cpp",
+                "-Ofast",
                 "-o",
-                "${fileDirname}/${fileBasenameNoExtension}",
+                "medianFilterDebug",
                 "--debug"
+            ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build Fast Release with Clang",
+            "type": "shell",
+            "command": "/usr/bin/clang++",
+            "args": [
+                "-std=c++17",
+                "-stdlib=libc++",
+                "main.cpp",
+                "-Ofast",
+                "medianFilterFastRelease.out"
+            ],
+            "group": {
+                "kind": "build",
+            }
+        },
+        {
+            "type": "cppbuild",
+            "label": "C/C++: clang++ build active file",
+            "command": "/usr/bin/clang++",
+            "args": [
+                "-fdiagnostics-color=always",
+                "-std=c++17",
+                "-stdlib=libc++",
+                // "-g",
+                "main.cpp",
+                "-Ofast",
+                "-o",
+                "${fileDirname}/${fileBasenameNoExtension}"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": [
+                "$gcc"
             ],
             "group": {
                 "kind": "build",
                 "isDefault": true
-            }
+            },
+            "detail": "compiler: /usr/bin/clang++"
         }
     ]
 }

@@ -8,10 +8,19 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug",
-            "program": "${fileDirname}/${fileBasenameNoExtension}",
+            "program": "${fileDirname}/medianFilterDebug",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "preLaunchTask": "Build with Clang"
+            "preLaunchTask": "Build Debug with Clang"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Fast Release",
+            "program": "${fileDirname}/medianFilterFastRelease",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Build Fast Release with Clang"
         }
     ]
 }
