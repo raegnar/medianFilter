@@ -46,13 +46,21 @@
 // Average for median-filter V4:  511.9 ms, 3.8x vs V1
 // Average for median-filter V5:  228.4 ms, 8.5x vs V1
 
-// System #2: Apple M1 MacBook Pro
+// System #2: Apple M1 MacBook Pro - Debug build
 // Testing and timing median filter implementations
-// Average for median-filter V1:  430.8 ms
-// Average for median-filter V2:  279.0 ms, 1.5x vs V1
-// Average for median-filter V3:  254.1 ms, 1.7x vs V1
-// Average for median-filter V4:  117.3 ms, 3.7x vs V1
-// Average for median-filter V5:   43.1 ms, 10.0x vs V1
+// Average for median-filter V1: 1688.6 ms
+// Average for median-filter V2:  921.9 ms, 1.8x vs V1
+// Average for median-filter V3:  992.4 ms, 1.7x vs V1
+// Average for median-filter V4:  392.8 ms, 4.3x vs V1
+// Average for median-filter V5:  219.6 ms, 7.7x vs V1
+
+// System #2: Apple M1 MacBook Pro - OFast build
+// Testing and timing median filter implementations
+// Average for median-filter V1:  434.0 ms
+// Average for median-filter V2:  275.4 ms, 1.6x vs V1
+// Average for median-filter V3:  366.2 ms, 1.2x vs V1
+// Average for median-filter V4:   79.1 ms, 5.5x vs V1
+// Average for median-filter V5:   43.0 ms, 10.0x vs V1
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------

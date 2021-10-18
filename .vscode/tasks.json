@@ -42,6 +42,7 @@
                 "-std=c++17",
                 "-stdlib=libc++",
                 "main.cpp",
+                "-Ofast",
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}"
             ],
