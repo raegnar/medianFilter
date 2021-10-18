@@ -31,7 +31,7 @@
                 "medianFilterFastRelease.out"
             ],
             "group": {
-                "kind": "build",
+                "kind": "build"
             }
         },
         {
@@ -42,7 +42,6 @@
                 "-fdiagnostics-color=always",
                 "-std=c++17",
                 "-stdlib=libc++",
-                // "-g",
                 "main.cpp",
                 "-Ofast",
                 "-o",
